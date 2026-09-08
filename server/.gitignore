@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Sensitive credential files
+.env
+neo4j.txt
+*.pem
+*.key
+
+# Logs
+*.log

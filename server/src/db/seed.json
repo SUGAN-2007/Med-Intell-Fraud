@@ -1,0 +1,384 @@
+{
+  "nodes": [
+    {
+      "id": "agent_001",
+      "label": "Agent",
+      "properties": {
+        "name": "MedVanguard Facilitators",
+        "country": "Thailand",
+        "registeredYear": 2021,
+        "trustRating": 3.2,
+        "contactEmail": "ops@medvanguard.io",
+        "specialization": "Cardiology, Dental Surgery",
+        "bankAccount": "ACC_9948201"
+      }
+    },
+    {
+      "id": "agent_002",
+      "label": "Agent",
+      "properties": {
+        "name": "Horizon Med Travel",
+        "country": "Turkey",
+        "registeredYear": 2022,
+        "trustRating": 2.1,
+        "contactEmail": "contact@horizonmed.tr",
+        "specialization": "Cosmetic Surgery, Hair Transplant",
+        "bankAccount": "ACC_3310049"
+      }
+    },
+    {
+      "id": "agent_003",
+      "label": "Agent",
+      "properties": {
+        "name": "HealthWay Global",
+        "country": "India",
+        "registeredYear": 2019,
+        "trustRating": 1.8,
+        "contactEmail": "info@healthwayglobal.in",
+        "specialization": "Oncology, Orthopedics, Cardiology",
+        "bankAccount": "ACC_7720914"
+      }
+    },
+    {
+      "id": "agent_004",
+      "label": "Agent",
+      "properties": {
+        "name": "ApexCare Partners",
+        "country": "Mexico",
+        "registeredYear": 2023,
+        "trustRating": 2.9,
+        "contactEmail": "care@apexpartners.mx",
+        "specialization": "Bariatrics, Dental Surgery",
+        "bankAccount": "ACC_9948201"
+      }
+    },
+    {
+      "id": "agent_005",
+      "label": "Agent",
+      "properties": {
+        "name": "Lotus Health Concierge",
+        "country": "Thailand",
+        "registeredYear": 2018,
+        "trustRating": 4.9,
+        "contactEmail": "vip@lotushealth.th",
+        "specialization": "Cardiology, Orthopedics, Dental Surgery",
+        "bankAccount": "ACC_1102938"
+      }
+    },
+    {
+      "id": "agent_006",
+      "label": "Agent",
+      "properties": {
+        "name": "Anatolia Care Network",
+        "country": "Turkey",
+        "registeredYear": 2017,
+        "trustRating": 4.8,
+        "contactEmail": "support@anatoliacare.com",
+        "specialization": "Cosmetic Surgery, Hair Transplant",
+        "bankAccount": "ACC_4492019"
+      }
+    },
+    {
+      "id": "clinic_001",
+      "label": "Clinic",
+      "properties": {
+        "name": "Bangkok Heart & Medical Center",
+        "country": "Thailand",
+        "accreditation": "JCI Accredited",
+        "city": "Bangkok",
+        "bankAccount": "ACC_8819203"
+      }
+    },
+    {
+      "id": "clinic_002",
+      "label": "Clinic",
+      "properties": {
+        "name": "Phuket Aesthetics & Laser Institute",
+        "country": "Thailand",
+        "accreditation": "ISO 9001",
+        "city": "Phuket",
+        "bankAccount": "ACC_5501928"
+      }
+    },
+    {
+      "id": "clinic_003",
+      "label": "Clinic",
+      "properties": {
+        "name": "Global Aesthetics Center",
+        "country": "Turkey",
+        "accreditation": "Unverified",
+        "city": "Istanbul",
+        "bankAccount": "ACC_9948201"
+      }
+    },
+    {
+      "id": "clinic_004",
+      "label": "Clinic",
+      "properties": {
+        "name": "Tijuana Bariatric & Dental Care",
+        "country": "Mexico",
+        "accreditation": "COFEPRIS Certified",
+        "city": "Tijuana",
+        "bankAccount": "ACC_2209182"
+      }
+    },
+    {
+      "id": "clinic_005",
+      "label": "Clinic",
+      "properties": {
+        "name": "Delhi SuperSpecialty Hospital",
+        "country": "India",
+        "accreditation": "NABH Accredited",
+        "city": "New Delhi",
+        "bankAccount": "ACC_6630192"
+      }
+    },
+    {
+      "id": "doc_001",
+      "label": "Doctor",
+      "properties": {
+        "name": "Dr. Somchai Prasert",
+        "specialty": "Cardiology",
+        "licenseNumber": "LIC-TH-9021",
+        "experienceYears": 18
+      }
+    },
+    {
+      "id": "doc_002",
+      "label": "Doctor",
+      "properties": {
+        "name": "Dr. Apinya Sukhumvit",
+        "specialty": "Dental Surgery",
+        "licenseNumber": "LIC-TH-4412",
+        "experienceYears": 12
+      }
+    },
+    {
+      "id": "doc_003",
+      "label": "Doctor",
+      "properties": {
+        "name": "Dr. Elena Rostova",
+        "specialty": "Cosmetic Surgery",
+        "licenseNumber": "LIC-TR-7719",
+        "experienceYears": 9
+      }
+    },
+    {
+      "id": "doc_004",
+      "label": "Doctor",
+      "properties": {
+        "name": "Dr. Marcus Vance",
+        "specialty": "Dental Surgery",
+        "licenseNumber": "LIC-TX-88390",
+        "experienceYears": 6
+      }
+    },
+    {
+      "id": "doc_005",
+      "label": "Doctor",
+      "properties": {
+        "name": "Dr. Rajesh Kumar",
+        "specialty": "Oncology",
+        "licenseNumber": "LIC-IN-1092",
+        "experienceYears": 22
+      }
+    },
+    {
+      "id": "doc_006",
+      "label": "Doctor",
+      "properties": {
+        "name": "Dr. Tariq Yilmaz",
+        "specialty": "Hair Transplant",
+        "licenseNumber": "LIC-TR-3391",
+        "experienceYears": 15
+      }
+    },
+    {
+      "id": "doc_007",
+      "label": "Doctor",
+      "properties": {
+        "name": "Dr. Victor Vance",
+        "specialty": "Cosmetic Surgery",
+        "licenseNumber": "LIC-TX-88390",
+        "experienceYears": 4
+      }
+    },
+    {
+      "id": "bank_001",
+      "label": "BankAccount",
+      "properties": {
+        "accountNumber": "ACC_9948201",
+        "bankName": "Cayman Offshore Premier Trust",
+        "country": "Cayman Islands",
+        "flaggedStatus": "SUSPICIOUS_MULTI_ENTITY"
+      }
+    },
+    {
+      "id": "bank_002",
+      "label": "BankAccount",
+      "properties": {
+        "accountNumber": "ACC_3310049",
+        "bankName": "Bosporus Commercial Bank",
+        "country": "Turkey",
+        "flaggedStatus": "NORMAL"
+      }
+    },
+    {
+      "id": "license_001",
+      "label": "LicenseRecord",
+      "properties": {
+        "licenseNumber": "LIC-TX-88390",
+        "issuingBoard": "International Medical Registry",
+        "status": "DUPLICATE_FLAGGED"
+      }
+    },
+    {
+      "id": "patient_001",
+      "label": "Patient",
+      "properties": {
+        "name": "Sarah Jenkins",
+        "country": "USA",
+        "treatmentNeeded": "Dental Surgery",
+        "budget": 8500
+      }
+    },
+    {
+      "id": "patient_002",
+      "label": "Patient",
+      "properties": {
+        "name": "David Miller",
+        "country": "UK",
+        "treatmentNeeded": "Cosmetic Surgery",
+        "budget": 12000
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "from": "agent_001",
+      "to": "bank_001",
+      "type": "USES_BANK_ACCOUNT",
+      "properties": { "since": "2021" }
+    },
+    {
+      "from": "clinic_003",
+      "to": "bank_001",
+      "type": "USES_BANK_ACCOUNT",
+      "properties": { "since": "2022" }
+    },
+    {
+      "from": "agent_004",
+      "to": "bank_001",
+      "type": "USES_BANK_ACCOUNT",
+      "properties": { "since": "2023" }
+    },
+
+    {
+      "from": "doc_004",
+      "to": "license_001",
+      "type": "HOLDS_LICENSE",
+      "properties": { "verified": false }
+    },
+    {
+      "from": "doc_007",
+      "to": "license_001",
+      "type": "HOLDS_LICENSE",
+      "properties": { "verified": false }
+    },
+
+    {
+      "from": "agent_002",
+      "to": "clinic_002",
+      "type": "REFERS_TO",
+      "properties": { "volume": "High", "commissionRate": "35%" }
+    },
+    {
+      "from": "clinic_002",
+      "to": "doc_003",
+      "type": "EMPLOYS",
+      "properties": { "role": "Lead Surgeon" }
+    },
+    {
+      "from": "doc_003",
+      "to": "agent_002",
+      "type": "KICKBACK_PAYOUT",
+      "properties": { "revenueShare": "45%" }
+    },
+
+    {
+      "from": "agent_003",
+      "to": "clinic_001",
+      "type": "REFERS_TO",
+      "properties": { "commission": "Standard" }
+    },
+    {
+      "from": "agent_003",
+      "to": "clinic_002",
+      "type": "REFERS_TO",
+      "properties": { "commission": "High" }
+    },
+    {
+      "from": "agent_003",
+      "to": "clinic_003",
+      "type": "REFERS_TO",
+      "properties": { "commission": "Unverified" }
+    },
+    {
+      "from": "agent_003",
+      "to": "clinic_004",
+      "type": "REFERS_TO",
+      "properties": { "commission": "Unverified" }
+    },
+    {
+      "from": "agent_003",
+      "to": "clinic_005",
+      "type": "REFERS_TO",
+      "properties": { "commission": "Standard" }
+    },
+
+    {
+      "from": "agent_005",
+      "to": "clinic_001",
+      "type": "PARTNERS_WITH",
+      "properties": { "status": "Verified", "since": "2018" }
+    },
+    {
+      "from": "clinic_001",
+      "to": "doc_001",
+      "type": "EMPLOYS",
+      "properties": { "department": "Cardiology" }
+    },
+    {
+      "from": "clinic_001",
+      "to": "doc_002",
+      "type": "EMPLOYS",
+      "properties": { "department": "Dental Surgery" }
+    },
+
+    {
+      "from": "agent_006",
+      "to": "clinic_003",
+      "type": "PARTNERS_WITH",
+      "properties": { "status": "Verified" }
+    },
+    {
+      "from": "clinic_003",
+      "to": "doc_006",
+      "type": "EMPLOYS",
+      "properties": { "department": "Hair Restoration" }
+    },
+
+    {
+      "from": "patient_001",
+      "to": "agent_001",
+      "type": "MATCHED_WITH",
+      "properties": { "status": "Pending Review" }
+    },
+    {
+      "from": "patient_002",
+      "to": "agent_002",
+      "type": "MATCHED_WITH",
+      "properties": { "status": "Flagged" }
+    }
+  ]
+}
