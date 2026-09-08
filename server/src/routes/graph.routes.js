@@ -1,42 +1,66 @@
 import express from 'express';
-import { getMemoryStore } from '../db/seedLoader.js';
+import { runQuery } from '../config/neo4j.js';
+import { getFullGraph } from '../queries/fraudQueries.js';
 
 const router = express.Router();
 
 /**
  * GET /api/graph
- * Returns full graph nodes and links formatted for react-force-graph
+ * Runs getFullGraph() and returns nodes + edges formatted for react-force-graph
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { nodes, relationships } = getMemoryStore();
+    const records = await runQuery(getFullGraph());
 
-    const formattedNodes = nodes.map(n => ({
-      id: n.id,
-      name: n.properties.name || n.properties.accountNumber || n.properties.licenseNumber || n.id,
-      label: n.label,
-      group: n.label,
-      properties: n.properties
-    }));
+    const nodesMap = new Map();
+    const links = [];
 
-    const formattedLinks = relationships.map((r, index) => ({
-      id: `link_${index}`,
-      source: r.from,
-      target: r.to,
-      type: r.type,
-      label: r.type,
-      properties: r.properties || {}
-    }));
+    records.forEach(row => {
+      const { n, r, m } = row;
 
-    res.json({
-      success: true,
-      data: {
-        nodes: formattedNodes,
-        links: formattedLinks
+      if (n && n.id) {
+        if (!nodesMap.has(n.id)) {
+          nodesMap.set(n.id, {
+            id: n.id,
+            name: n.properties?.name || n.properties?.accountNumber || n.properties?.licenseNumber || n.id,
+            label: n.labels ? n.labels[0] : 'Node',
+            type: n.labels ? n.labels[0] : 'Node',
+            properties: n.properties || {}
+          });
+        }
+      }
+
+      if (m && m.id) {
+        if (!nodesMap.has(m.id)) {
+          nodesMap.set(m.id, {
+            id: m.id,
+            name: m.properties?.name || m.properties?.accountNumber || m.properties?.licenseNumber || m.id,
+            label: m.labels ? m.labels[0] : 'Node',
+            type: m.labels ? m.labels[0] : 'Node',
+            properties: m.properties || {}
+          });
+        }
+      }
+
+      if (r && n && m) {
+        links.push({
+          id: r.id || `link_${links.length}`,
+          source: n.id,
+          target: m.id,
+          type: r.type || 'RELATIONSHIP',
+          label: r.type || 'RELATIONSHIP',
+          properties: r.properties || {}
+        });
       }
     });
+
+    res.json({
+      nodes: Array.from(nodesMap.values()),
+      links
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error fetching graph data:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

@@ -8,15 +8,13 @@ export default function App() {
   const [selectedNode, setSelectedNode] = useState(null);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="h-screen w-screen max-h-screen max-w-screen flex flex-col overflow-hidden bg-slate-950 text-slate-100 font-sans select-none">
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        nodeCount={23}
-        fraudRingsCount={4}
       />
 
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         {activeTab === 'admin' ? (
           <AdminDashboard
             selectedNode={selectedNode}

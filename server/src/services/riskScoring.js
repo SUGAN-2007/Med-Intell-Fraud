@@ -1,102 +1,66 @@
-import { detectSharedBankAccounts } from '../queries/sharedBankAccount.js';
-import { detectDuplicateLicenses } from '../queries/duplicateLicense.js';
-import { detectCircularReferrals } from '../queries/circularReferral.js';
-import { detectHighDegreeNodes } from '../queries/highDegreeNode.js';
-import { getMemoryStore } from '../db/seedLoader.js';
+import { runQuery } from '../config/neo4j.js';
+import {
+  getSharedBankAccounts,
+  getDuplicateLicenses,
+  getCircularReferrals,
+  getHighConnectivityNodes
+} from '../queries/fraudQueries.js';
 
 /**
- * Compute weighted risk score (0 - 100) for a given agent.
+ * Calculate risk score (0-100) for a given entity ID based on triggered fraud patterns.
  */
-export async function calculateAgentRiskScore(agentId) {
-  const { nodes } = getMemoryStore();
-  const agent = nodes.find(n => n.id === agentId);
-
-  if (!agent) {
-    throw new Error(`Agent with ID '${agentId}' not found.`);
-  }
-
-  // Execute all fraud detection rules concurrently
-  const [sharedAccounts, duplicateLicenses, circularReferrals, highDegreeNodes] = await Promise.all([
-    detectSharedBankAccounts(),
-    detectDuplicateLicenses(),
-    detectCircularReferrals(),
-    detectHighDegreeNodes(4)
+export async function calculateRiskScore(entityId) {
+  const [sharedAccs, dupLicenses, circRefs, highConn] = await Promise.all([
+    runQuery(getSharedBankAccounts()),
+    runQuery(getDuplicateLicenses()),
+    runQuery(getCircularReferrals()),
+    runQuery(getHighConnectivityNodes())
   ]);
 
   let score = 0;
-  const triggeredRules = [];
+  const triggeredPatterns = [];
 
-  // Rule 1: Shared Bank Account (+45 points)
-  const sharedAccMatch = sharedAccounts.find(
-    item => item.entity1.id === agentId || item.entity2.id === agentId
+  // Check 1: Shared Bank Account (+40 points)
+  const isSharedBank = sharedAccs.some(
+    row => row.clinic1 === entityId || row.clinic2 === entityId
   );
-  if (sharedAccMatch) {
-    score += 45;
-    triggeredRules.push({
-      rule: 'SHARED_BANK_ACCOUNT',
-      severity: 'CRITICAL',
-      points: 45,
-      description: `Shares offshore bank account ${sharedAccMatch.accountNumber} with unlinked clinic/agent (${sharedAccMatch.entity1.id === agentId ? sharedAccMatch.entity2.name : sharedAccMatch.entity1.name}).`
-    });
+  if (isSharedBank) {
+    score += 40;
+    triggeredPatterns.push('shared_bank_account');
   }
 
-  // Rule 2: Circular Referral Loop (+35 points)
-  const circularMatch = circularReferrals.find(item => item.agent.id === agentId);
-  if (circularMatch) {
+  // Check 2: Duplicate License (+35 points)
+  const isDupLicense = dupLicenses.some(
+    row => row.doctor1 === entityId || row.doctor2 === entityId
+  );
+  if (isDupLicense) {
     score += 35;
-    triggeredRules.push({
-      rule: 'CIRCULAR_REFERRAL_KICKBACK',
-      severity: 'HIGH',
-      points: 35,
-      description: `Participates in closed referral kickback ring with clinic '${circularMatch.clinic.name}' and doctor '${circularMatch.doctor.name}'.`
-    });
+    triggeredPatterns.push('duplicate_license');
   }
 
-  // Rule 3: High Degree Connection Anomaly (+15 points)
-  const highDegreeMatch = highDegreeNodes.find(item => item.id === agentId);
-  if (highDegreeMatch) {
-    score += 15;
-    triggeredRules.push({
-      rule: 'UNNATURAL_NODE_DEGREE',
-      severity: 'MEDIUM',
-      points: 15,
-      description: `Holds an unusually high volume of unverified connections (${highDegreeMatch.degree} linked nodes).`
-    });
+  // Check 3: Circular Referral (+25 points)
+  const isCircular = circRefs.some(
+    row => Array.isArray(row.cycle) && row.cycle.includes(entityId)
+  );
+  if (isCircular) {
+    score += 25;
+    triggeredPatterns.push('circular_referral');
   }
 
-  // Rule 4: Trust Rating Penalty (up to +20 points)
-  const trustRating = agent.properties.trustRating || 3.0;
-  if (trustRating < 2.5) {
-    const penalty = Math.round((2.5 - trustRating) * 15);
-    score += penalty;
-    triggeredRules.push({
-      rule: 'LOW_PUBLIC_TRUST_RATING',
-      severity: 'LOW',
-      points: penalty,
-      description: `Public rating of ${trustRating}/5.0 is below safety threshold.`
-    });
+  // Check 4: High Connectivity (+20 points)
+  const isHighConn = highConn.some(
+    row => row.id === entityId
+  );
+  if (isHighConn) {
+    score += 20;
+    triggeredPatterns.push('high_connectivity');
   }
 
-  // Cap score at 100
-  const finalScore = Math.min(100, Math.max(0, score));
-
-  // Determine Risk Tier
-  let riskLevel = 'LOW_RISK';
-  if (finalScore >= 60) {
-    riskLevel = 'HIGH_RISK';
-  } else if (finalScore >= 30) {
-    riskLevel = 'MEDIUM_RISK';
-  }
+  const riskScore = Math.min(100, Math.max(0, score));
 
   return {
-    agentId: agent.id,
-    agentName: agent.properties.name,
-    country: agent.properties.country,
-    specialization: agent.properties.specialization,
-    trustRating: agent.properties.trustRating,
-    riskScore: finalScore,
-    riskLevel,
-    triggeredRulesCount: triggeredRules.length,
-    triggeredRules
+    id: entityId,
+    riskScore,
+    triggeredPatterns
   };
 }

@@ -1,16 +1,28 @@
 import express from 'express';
-import { calculateAgentRiskScore } from '../services/riskScoring.js';
+import { calculateRiskScore } from '../services/riskScoring.js';
+import { generateExplanation } from '../services/openrouterExplain.js';
 
 const router = express.Router();
 
-// GET /api/risk-score/:agentId
-router.get('/:agentId', async (req, res) => {
+/**
+ * GET /api/risk-score/:id
+ * Calculates risk score and returns AI explanation for entity
+ */
+router.get('/:id', async (req, res) => {
   try {
-    const { agentId } = req.params;
-    const result = await calculateAgentRiskScore(agentId);
-    res.json({ success: true, data: result });
+    const { id } = req.params;
+    const scoreData = await calculateRiskScore(id);
+    const explanation = await generateExplanation(scoreData.triggeredPatterns);
+
+    res.json({
+      id: scoreData.id,
+      riskScore: scoreData.riskScore,
+      triggeredPatterns: scoreData.triggeredPatterns,
+      explanation
+    });
   } catch (error) {
-    res.status(404).json({ success: false, error: error.message });
+    console.error('Error calculating risk score:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

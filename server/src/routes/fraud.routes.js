@@ -1,49 +1,51 @@
 import express from 'express';
-import { detectSharedBankAccounts } from '../queries/sharedBankAccount.js';
-import { detectDuplicateLicenses } from '../queries/duplicateLicense.js';
-import { detectCircularReferrals } from '../queries/circularReferral.js';
-import { detectHighDegreeNodes } from '../queries/highDegreeNode.js';
+import { runQuery } from '../config/neo4j.js';
+import {
+  getSharedBankAccounts,
+  getDuplicateLicenses,
+  getCircularReferrals,
+  getHighConnectivityNodes
+} from '../queries/fraudQueries.js';
 
 const router = express.Router();
 
 // GET /api/fraud/shared-accounts
 router.get('/shared-accounts', async (req, res) => {
   try {
-    const results = await detectSharedBankAccounts();
-    res.json({ success: true, count: results.length, data: results });
+    const data = await runQuery(getSharedBankAccounts());
+    res.json(data);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
 // GET /api/fraud/duplicate-licenses
 router.get('/duplicate-licenses', async (req, res) => {
   try {
-    const results = await detectDuplicateLicenses();
-    res.json({ success: true, count: results.length, data: results });
+    const data = await runQuery(getDuplicateLicenses());
+    res.json(data);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
 // GET /api/fraud/circular-referrals
 router.get('/circular-referrals', async (req, res) => {
   try {
-    const results = await detectCircularReferrals();
-    res.json({ success: true, count: results.length, data: results });
+    const data = await runQuery(getCircularReferrals());
+    res.json(data);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// GET /api/fraud/high-degree
-router.get('/high-degree', async (req, res) => {
+// GET /api/fraud/high-connectivity
+router.get('/high-connectivity', async (req, res) => {
   try {
-    const threshold = parseInt(req.query.threshold) || 4;
-    const results = await detectHighDegreeNodes(threshold);
-    res.json({ success: true, count: results.length, data: results });
+    const data = await runQuery(getHighConnectivityNodes());
+    res.json(data);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
