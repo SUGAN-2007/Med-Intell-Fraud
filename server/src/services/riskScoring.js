@@ -43,12 +43,12 @@ export async function calculateRiskScore(entityId) {
     triggeredPatterns.push('duplicate_license');
   }
 
-  // Check 3: Circular Referral (+25 points)
+  // Check 3: Circular Referral (+45 points — raised from 25 to always breach Safe threshold)
   const isCircular = circRefs.some(
     row => Array.isArray(row.cycle) && row.cycle.includes(entityId)
   );
   if (isCircular) {
-    score += 25;
+    score += 45;
     triggeredPatterns.push('circular_referral');
   }
 

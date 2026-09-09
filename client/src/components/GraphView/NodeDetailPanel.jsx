@@ -45,8 +45,8 @@ export default function NodeDetailPanel({ node, onClose }) {
 
   const score = riskData?.riskScore ?? 0;
   const patterns = riskData?.triggeredPatterns || [];
-  const riskLabel = score > 60 ? 'HIGH RISK' : score >= 30 ? 'CAUTION' : 'VERIFIED SAFE';
-  const riskColor = score > 60 ? '#f87171' : score >= 30 ? '#fbbf24' : '#34d399';
+  const riskLabel = score >= 60 ? 'HIGH RISK' : score >= 20 ? 'CAUTION' : 'VERIFIED SAFE';
+  const riskColor = score >= 60 ? '#f87171' : score >= 20 ? '#fbbf24' : '#34d399';
 
   return (
     <aside
@@ -176,7 +176,7 @@ export default function NodeDetailPanel({ node, onClose }) {
                   <span className="font-mono font-extrabold" style={{ fontSize: 38, color: riskColor, lineHeight: 1 }}>
                     {score}
                   </span>
-                  <span className="font-mono" style={{ fontSize: 11, color: '#404040' }}>/100</span>
+                  <span className="font-mono font-bold" style={{ fontSize: 20, color: riskColor, opacity: 0.7 }}>%</span>
                 </div>
                 <span className="font-mono font-bold uppercase" style={{ fontSize: 10, color: riskColor, letterSpacing: '0.8px' }}>
                   {riskLabel}

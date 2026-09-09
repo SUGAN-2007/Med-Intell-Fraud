@@ -8,9 +8,9 @@ export default function RiskBadge({ riskScore, score, level }) {
       ? score
       : level === 'HIGH_RISK' ? 75 : level === 'MEDIUM_RISK' ? 45 : 15;
 
-  const cfg = s < 30
+  const cfg = s < 20
     ? { Icon: ShieldCheck,  bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.28)', color: '#34d399', label: 'Safe' }
-    : s <= 60
+    : s < 60
     ? { Icon: AlertTriangle, bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.28)', color: '#fbbf24', label: 'Caution' }
     : { Icon: ShieldAlert,   bg: 'rgba(244,63,94,0.1)',  border: 'rgba(244,63,94,0.28)',  color: '#f87171', label: 'High Risk' };
 
@@ -32,7 +32,7 @@ export default function RiskBadge({ riskScore, score, level }) {
       }}
     >
       <cfg.Icon size={11} strokeWidth={2.5} />
-      {cfg.label} · {s}
+      {cfg.label} · {s}%
     </span>
   );
 }
