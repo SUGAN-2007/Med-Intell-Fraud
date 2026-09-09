@@ -28,6 +28,11 @@ export const matchAgents = async (treatment, country, maxBudget) => {
   return response.data;
 };
 
+export const fetchClinics = async () => {
+  const response = await apiClient.get('/match/clinics');
+  return response.data;
+};
+
 // Unified api object for convenience
 export const api = {
   fetchGraph,
