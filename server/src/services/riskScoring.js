@@ -10,12 +10,17 @@ import {
  * Calculate risk score (0-100) for a given entity ID based on triggered fraud patterns.
  */
 export async function calculateRiskScore(entityId) {
-  const [sharedAccs, dupLicenses, circRefs, highConn] = await Promise.all([
+  const [sharedAccs, dupLicenses, circRefs, highConn, nodeQueryResult] = await Promise.all([
     runQuery(getSharedBankAccounts()),
     runQuery(getDuplicateLicenses()),
     runQuery(getCircularReferrals()),
-    runQuery(getHighConnectivityNodes())
+    runQuery(getHighConnectivityNodes()),
+    runQuery(`MATCH (n) WHERE n.id = $entityId RETURN n.name AS name, labels(n)[0] AS type LIMIT 1`, { entityId })
   ]);
+
+  const nodeInfo = (nodeQueryResult && nodeQueryResult[0]) ? nodeQueryResult[0] : {};
+  const name = nodeInfo.name || entityId;
+  const type = nodeInfo.type || 'Entity';
 
   let score = 0;
   const triggeredPatterns = [];
@@ -60,6 +65,8 @@ export async function calculateRiskScore(entityId) {
 
   return {
     id: entityId,
+    name,
+    type,
     riskScore,
     triggeredPatterns
   };
