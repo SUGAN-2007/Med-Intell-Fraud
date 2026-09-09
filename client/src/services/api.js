@@ -23,11 +23,17 @@ export const fetchFraudPattern = async (type) => {
   return response.data;
 };
 
+export const matchAgents = async (treatment, country, maxBudget) => {
+  const response = await apiClient.post('/match', { treatment, country, maxBudget });
+  return response.data;
+};
+
 // Unified api object for convenience
 export const api = {
   fetchGraph,
   fetchRiskScore,
   fetchFraudPattern,
+  matchAgents,
   // Helper methods matching existing calls
   getGraphData: fetchGraph,
   getSharedAccounts: () => fetchFraudPattern('shared-accounts'),
@@ -38,30 +44,6 @@ export const api = {
   getAiExplanation: async (id) => {
     const data = await fetchRiskScore(id);
     return { success: true, data };
-  },
-  matchAgents: async (treatment, country, maxBudget) => {
-    try {
-      const response = await apiClient.post('/match', { treatment, country, maxBudget });
-      return response.data;
-    } catch {
-      // Fallback: fetch graph and return low-risk agents
-      const graph = await fetchGraph();
-      const agents = (graph.nodes || []).filter(n => n.type === 'Agent' || n.label === 'Agent');
-      return {
-        success: true,
-        data: {
-          recommendations: agents.map(a => ({
-            id: a.id,
-            name: a.name || a.properties?.name || a.id,
-            country: a.properties?.country || 'International',
-            trustRating: a.properties?.trustRating || 4.5,
-            specialization: treatment,
-            riskScore: 15,
-            riskLevel: 'LOW_RISK'
-          }))
-        }
-      };
-    }
   }
 };
 

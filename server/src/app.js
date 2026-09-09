@@ -3,6 +3,7 @@ import cors from 'cors';
 import graphRoutes from './routes/graph.routes.js';
 import fraudRoutes from './routes/fraud.routes.js';
 import riskScoreRoutes from './routes/riskScore.routes.js';
+import matchRoutes from './routes/match.routes.js';
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.get('/health', (req, res) => {
 app.use('/api/graph', graphRoutes);
 app.use('/api/fraud', fraudRoutes);
 app.use('/api/risk-score', riskScoreRoutes);
+app.use('/api/match', matchRoutes);
 
 // 404 Handler
 app.use((req, res) => {

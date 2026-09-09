@@ -8,12 +8,19 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
   const containerRef = useRef();
 
   const [graphData, setGraphData] = useState(initialGraphData || { nodes: [], links: [] });
+
+  // Sets for specific fraud patterns
   const [fraudNodeIds, setFraudNodeIds] = useState(new Set());
+  const [sharedAccountIds, setSharedAccountIds] = useState(new Set());
+  const [duplicateLicenseIds, setDuplicateLicenseIds] = useState(new Set());
+  const [circularReferralIds, setCircularReferralIds] = useState(new Set());
+
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
   const [searchTerm, setSearchTerm] = useState('');
+  const [hoverNode, setHoverNode] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
 
-  // Auto-fetch Graph & Fraud Nodes on Mount
+  // Auto-fetch Graph & Fraud Pattern Datasets on Mount
   useEffect(() => {
     let isMounted = true;
 
@@ -30,30 +37,35 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
         setGraphData(graphRes);
       }
 
-      // Collect all node IDs involved in any fraud pattern
-      const flaggedIds = new Set();
+      const allFlagged = new Set();
+      const sharedSet = new Set();
+      const dupSet = new Set();
+      const circSet = new Set();
 
       (sharedRes || []).forEach(row => {
-        if (row.clinic1) flaggedIds.add(row.clinic1);
-        if (row.clinic2) flaggedIds.add(row.clinic2);
+        if (row.clinic1) { sharedSet.add(row.clinic1); allFlagged.add(row.clinic1); }
+        if (row.clinic2) { sharedSet.add(row.clinic2); allFlagged.add(row.clinic2); }
       });
 
       (dupRes || []).forEach(row => {
-        if (row.doctor1) flaggedIds.add(row.doctor1);
-        if (row.doctor2) flaggedIds.add(row.doctor2);
+        if (row.doctor1) { dupSet.add(row.doctor1); allFlagged.add(row.doctor1); }
+        if (row.doctor2) { dupSet.add(row.doctor2); allFlagged.add(row.doctor2); }
       });
 
       (circRes || []).forEach(row => {
         if (Array.isArray(row.cycle)) {
-          row.cycle.forEach(id => flaggedIds.add(id));
+          row.cycle.forEach(id => { circSet.add(id); allFlagged.add(id); });
         }
       });
 
       (connRes || []).forEach(row => {
-        if (row.id) flaggedIds.add(row.id);
+        if (row.id) allFlagged.add(row.id);
       });
 
-      setFraudNodeIds(flaggedIds);
+      setFraudNodeIds(allFlagged);
+      setSharedAccountIds(sharedSet);
+      setDuplicateLicenseIds(dupSet);
+      setCircularReferralIds(circSet);
     }).catch(err => {
       console.error('Error fetching graph view data:', err);
     });
@@ -61,7 +73,7 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
     return () => { isMounted = false; };
   }, []);
 
-  // Update layout dimensions dynamically on resize
+  // Update layout dimensions dynamically on container resize
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -78,7 +90,21 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Configure D3 Force Physics so nodes spread out comfortably across full canvas
+  // Auto-center & zoom camera on search match
+  useEffect(() => {
+    if (!searchTerm || !graphData.nodes || graphData.nodes.length === 0) return;
+
+    const match = graphData.nodes.find(n =>
+      (n.name || n.id).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (match && match.x !== undefined && match.y !== undefined && fgRef.current) {
+      fgRef.current.centerAt(match.x, match.y, 500);
+      fgRef.current.zoom(2.2, 500);
+    }
+  }, [searchTerm, graphData]);
+
+  // Configure D3 Force Physics so nodes spread out comfortably
   useEffect(() => {
     if (fgRef.current) {
       fgRef.current.d3Force('charge').strength(-700);
@@ -92,26 +118,23 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
   const handleZoomOut = () => fgRef.current?.zoom(fgRef.current.zoom() / 1.3, 400);
   const handleResetZoom = () => fgRef.current?.zoomToFit(500, 70);
 
-  // Determine node color by type & fraud status
+  // Helper to check if node matches active filter tab
+  const isNodeInActiveFilter = useCallback((node) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'sharedAccounts') return sharedAccountIds.has(node.id);
+    if (activeFilter === 'duplicateLicenses') return duplicateLicenseIds.has(node.id);
+    if (activeFilter === 'circularReferrals') return circularReferralIds.has(node.id);
+    return true;
+  }, [activeFilter, sharedAccountIds, duplicateLicenseIds, circularReferralIds]);
+
+  // Node Color Assignment
   const getNodeColor = useCallback((node) => {
     if (selectedNode && selectedNode.id === node.id) {
       return '#06B6D4'; // Highlight Cyan when selected
     }
 
-    // Filter Highlight Modes
-    if (activeFilter === 'sharedAccounts' && (node.id === 'C7' || node.id === 'C8' || node.id === 'C9' || node.id === 'SHARED-BANK-999')) {
-      return '#EF4444';
-    }
-    if (activeFilter === 'duplicateLicenses' && (node.id === 'D7' || node.id === 'D8')) {
-      return '#F59E0B';
-    }
-    if (activeFilter === 'circularReferrals' && (node.id === 'A7' || node.id === 'A8' || node.id === 'A9')) {
-      return '#A855F7';
-    }
-
-    // Color RED if node appears in any fraud pattern
     if (fraudNodeIds.has(node.id)) {
-      return '#EF4444'; // Red Alert
+      return '#EF4444'; // Bright Red for Fraud
     }
 
     const type = node.type || node.label;
@@ -122,9 +145,9 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
       case 'Patient': return '#94A3B8';// Slate Gray
       default: return '#64748B';
     }
-  }, [selectedNode, fraudNodeIds, activeFilter]);
+  }, [selectedNode, fraudNodeIds]);
 
-  // Custom Node Rendering with Text Background Pills
+  // Custom Node Canvas Painting
   const drawCanvasNode = useCallback((node, ctx, globalScale) => {
     const label = node.name || node.id;
     const fontSize = Math.max(11, 13 / globalScale);
@@ -133,21 +156,26 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
 
     const isFraud = fraudNodeIds.has(node.id);
     const isSelected = selectedNode && selectedNode.id === node.id;
-    const isMatch = searchTerm && label.toLowerCase().includes(searchTerm.toLowerCase());
+    const isHovered = hoverNode && hoverNode.id === node.id;
+    const isSearchMatch = searchTerm && label.toLowerCase().includes(searchTerm.toLowerCase());
+    const isFilterActive = isNodeInActiveFilter(node);
 
-    // Outer Glow Ring for Fraud, Selected, or Search Matched Nodes
-    if (isFraud || isSelected || isMatch) {
+    // Dim non-matching nodes when filter or search is active
+    ctx.globalAlpha = (activeFilter !== 'all' && !isFilterActive) || (searchTerm && !isSearchMatch) ? 0.15 : 1.0;
+
+    // Outer Glow Ring
+    if (isFraud || isSelected || isSearchMatch || isHovered) {
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius + 6, 0, 2 * Math.PI, false);
-      ctx.fillStyle = isSelected
-        ? 'rgba(6, 182, 212, 0.45)'
+      ctx.fillStyle = isSelected || isHovered
+        ? 'rgba(6, 182, 212, 0.5)'
         : isFraud
-        ? 'rgba(239, 68, 68, 0.45)'
-        : 'rgba(251, 191, 36, 0.45)';
+        ? 'rgba(239, 68, 68, 0.5)'
+        : 'rgba(251, 191, 36, 0.5)';
       ctx.fill();
     }
 
-    // Main Node Circle
+    // Main Circle
     ctx.beginPath();
     ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
     ctx.fillStyle = getNodeColor(node);
@@ -155,18 +183,18 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
 
     // Node Border
     ctx.lineWidth = 2 / globalScale;
-    ctx.strokeStyle = '#0F172A';
+    ctx.strokeStyle = '#000000';
     ctx.stroke();
 
-    // Text Label with Background Pill
-    if (globalScale >= 0.5 || isSelected || isMatch || isFraud) {
+    // Text Label (Rendered cleanly with background pill on selection, hover, search, or zoom)
+    if (globalScale >= 0.75 || isSelected || isHovered || isSearchMatch || (isFraud && activeFilter !== 'all')) {
       ctx.font = `600 ${fontSize}px Inter, sans-serif`;
       const textWidth = ctx.measureText(label).width;
-      const bPadding = 5 / globalScale;
+      const bPadding = 6 / globalScale;
       const labelY = node.y + radius + 11 / globalScale;
 
       // Label background pill
-      ctx.fillStyle = 'rgba(7, 10, 18, 0.92)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
       ctx.fillRect(
         node.x - textWidth / 2 - bPadding,
         labelY - fontSize / 2 - 2 / globalScale,
@@ -176,11 +204,11 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
 
       // Pill border
       ctx.lineWidth = 1 / globalScale;
-      ctx.strokeStyle = isSelected
-        ? 'rgba(6, 182, 212, 0.6)'
+      ctx.strokeStyle = isSelected || isHovered
+        ? 'rgba(6, 182, 212, 0.7)'
         : isFraud
-        ? 'rgba(239, 68, 68, 0.6)'
-        : 'rgba(51, 65, 85, 0.6)';
+        ? 'rgba(239, 68, 68, 0.7)'
+        : 'rgba(64, 64, 64, 0.7)';
       ctx.strokeRect(
         node.x - textWidth / 2 - bPadding,
         labelY - fontSize / 2 - 2 / globalScale,
@@ -191,101 +219,139 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
       // Label text
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = isSelected ? '#38BDF8' : isFraud ? '#FCA5A5' : '#F8FAFC';
+      ctx.fillStyle = isSelected ? '#38BDF8' : isFraud ? '#FCA5A5' : '#FFFFFF';
       ctx.fillText(label, node.x, labelY);
     }
-  }, [getNodeColor, selectedNode, searchTerm, fraudNodeIds]);
+
+    ctx.globalAlpha = 1.0;
+  }, [getNodeColor, selectedNode, hoverNode, searchTerm, fraudNodeIds, activeFilter, isNodeInActiveFilter]);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-[#070A12] flex-1 select-none">
-      {/* Top Search & Filter Bar */}
-      <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-3">
-        {/* Search Bar */}
-        <div className="relative flex-shrink-0">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden flex-1 select-none" style={{ background: '#030303' }}>
+
+      {/* ── Top: Search + Filter Bar ── */}
+      <div style={{ position: 'absolute', top: 18, left: 18, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {/* Search */}
+        <div style={{ position: 'relative' }}>
+          <Search size={13} style={{ color: '#525252', position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             type="text"
-            placeholder="Search graph nodes..."
+            placeholder="Search nodes…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 pr-4 py-2 rounded-xl bg-slate-900/95 border border-slate-800 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500/60 w-56 backdrop-blur-xl shadow-2xl"
+            style={{
+              paddingLeft: 32,
+              paddingRight: 14,
+              paddingTop: 8,
+              paddingBottom: 8,
+              borderRadius: 10,
+              background: 'rgba(8,8,8,0.97)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              fontSize: 12,
+              color: '#e5e5e5',
+              width: 220,
+              outline: 'none',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+              fontFamily: 'JetBrains Mono, monospace',
+            }}
+            onFocus={e => { e.target.style.borderColor = 'rgba(6,182,212,0.5)'; }}
+            onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; }}
           />
         </div>
 
-        {/* Filter Button Strip */}
-        <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-900/95 border border-slate-800 backdrop-blur-xl shadow-2xl flex-wrap">
-          <button
-            onClick={() => setActiveFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-mono whitespace-nowrap transition-all cursor-pointer ${
-              activeFilter === 'all'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            All Nodes
-          </button>
-          <button
-            onClick={() => setActiveFilter(activeFilter === 'sharedAccounts' ? 'all' : 'sharedAccounts')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              activeFilter === 'sharedAccounts'
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <CreditCard className="w-3.5 h-3.5" />
-            Shared Accounts
-          </button>
-          <button
-            onClick={() => setActiveFilter(activeFilter === 'duplicateLicenses' ? 'all' : 'duplicateLicenses')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              activeFilter === 'duplicateLicenses'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            Duplicate Licenses
-          </button>
-          <button
-            onClick={() => setActiveFilter(activeFilter === 'circularReferrals' ? 'all' : 'circularReferrals')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              activeFilter === 'circularReferrals'
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            Circular Kickbacks
-          </button>
+        {/* Filter pills */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4, padding: 4,
+          borderRadius: 10, background: 'rgba(8,8,8,0.97)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+          flexWrap: 'wrap',
+        }}>
+          {[
+            { id: 'all', label: 'All', color: '#06b6d4' },
+            { id: 'sharedAccounts',    label: `Shared (${sharedAccountIds.size})`,      color: '#f43f5e', Icon: CreditCard },
+            { id: 'duplicateLicenses', label: `Duplicates (${duplicateLicenseIds.size})`, color: '#f59e0b', Icon: Award },
+            { id: 'circularReferrals', label: `Loops (${circularReferralIds.size})`,    color: '#a855f7', Icon: ShieldAlert },
+          ].map(({ id, label, color, Icon }) => {
+            const active = activeFilter === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveFilter(active && id !== 'all' ? 'all' : id)}
+                className="font-mono font-bold"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '6px 11px', borderRadius: 7,
+                  fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
+                  background: active ? `${color}18` : 'transparent',
+                  border: active ? `1px solid ${color}40` : '1px solid transparent',
+                  color: active ? color : '#525252',
+                  transition: 'all 0.18s ease',
+                }}
+              >
+                {Icon && <Icon size={11} />}
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Right Controls */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 p-1.5 rounded-xl bg-slate-900/95 border border-slate-800 backdrop-blur-xl shadow-2xl">
-        <button onClick={handleZoomIn} className="p-2 text-slate-300 hover:text-cyan-400 transition-colors cursor-pointer" title="Zoom In">
-          <ZoomIn className="w-4 h-4" />
-        </button>
-        <button onClick={handleZoomOut} className="p-2 text-slate-300 hover:text-cyan-400 transition-colors cursor-pointer" title="Zoom Out">
-          <ZoomOut className="w-4 h-4" />
-        </button>
-        <button onClick={handleResetZoom} className="p-2 text-slate-300 hover:text-cyan-400 transition-colors cursor-pointer" title="Reset View">
-          <RotateCcw className="w-4 h-4" />
-        </button>
+      {/* ── Right: Zoom Controls ── */}
+      <div style={{
+        position: 'absolute', top: 18, right: 18, zIndex: 20,
+        display: 'flex', flexDirection: 'column', gap: 2,
+        padding: 4, borderRadius: 10,
+        background: 'rgba(8,8,8,0.97)', border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+      }}>
+        {[
+          { action: handleZoomIn,    Icon: ZoomIn,    title: 'Zoom In' },
+          { action: handleZoomOut,   Icon: ZoomOut,   title: 'Zoom Out' },
+          { action: handleResetZoom, Icon: RotateCcw, title: 'Fit View' },
+        ].map(({ action, Icon, title }) => (
+          <button
+            key={title}
+            onClick={action}
+            title={title}
+            style={{
+              padding: '8px', borderRadius: 7, background: 'transparent',
+              border: 'none', cursor: 'pointer', color: '#525252',
+              transition: 'all 0.15s ease', display: 'flex',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(6,182,212,0.1)'; e.currentTarget.style.color = '#06b6d4'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#525252'; }}
+          >
+            <Icon size={14} />
+          </button>
+        ))}
       </div>
 
-      {/* Graph Legend */}
-      <div className="absolute bottom-4 left-4 z-20 p-3.5 rounded-xl bg-slate-900/95 border border-slate-800 backdrop-blur-xl shadow-2xl text-xs font-mono space-y-2 text-slate-300">
-        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Graph Node Legend</div>
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#38BDF8]" /> Agent (Blue)</div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#34D399]" /> Clinic (Green)</div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#A855F7]" /> Doctor (Purple)</div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#94A3B8]" /> Patient (Gray)</div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#EF4444]" /> Fraud Flagged (Red)</div>
+      {/* ── Bottom-left: Legend ── */}
+      <div style={{
+        position: 'absolute', bottom: 18, left: 18, zIndex: 20,
+        padding: '12px 16px', borderRadius: 12,
+        background: 'rgba(8,8,8,0.97)', border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+      }}>
+        <p className="font-mono font-bold uppercase" style={{ fontSize: 9, color: '#404040', letterSpacing: '0.8px', marginBottom: 8 }}>Legend</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          {[
+            { color: '#38BDF8', label: 'Agent' },
+            { color: '#34D399', label: 'Clinic' },
+            { color: '#A855F7', label: 'Doctor' },
+            { color: '#94A3B8', label: 'Patient' },
+            { color: '#EF4444', label: 'Fraud' },
+          ].map(({ color, label }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block', boxShadow: `0 0 6px ${color}80` }} />
+              <span className="font-mono" style={{ fontSize: 11, color: '#737373' }}>{label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Force Graph Canvas */}
+      {/* ── Force Graph Canvas ── */}
       <ForceGraph2D
         ref={fgRef}
         width={dimensions.width}
@@ -299,14 +365,19 @@ export default function GraphView({ graphData: initialGraphData, onNodeSelect, s
           ctx.fill();
         }}
         onNodeClick={(node) => onNodeSelect(node)}
+        onNodeHover={(node) => setHoverNode(node)}
         onEngineStop={() => fgRef.current?.zoomToFit(500, 80)}
         linkLabel={(link) => `${link.type}`}
-        linkColor={() => '#334155'}
-        linkWidth={2}
+        linkColor={() => {
+          if (activeFilter === 'sharedAccounts') return '#f43f5e';
+          if (activeFilter === 'circularReferrals') return '#a855f7';
+          return '#1c1c1c';
+        }}
+        linkWidth={1.2}
         linkDirectionalParticles={2}
-        linkDirectionalParticleSpeed={0.005}
+        linkDirectionalParticleSpeed={0.004}
         linkDirectionalParticleWidth={2}
-        backgroundColor="#070A12"
+        backgroundColor="#030303"
       />
     </div>
   );

@@ -1,188 +1,306 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldAlert, Sparkles, User, Building, Stethoscope, CreditCard, Award, UserCheck, Activity } from 'lucide-react';
+import { X, ShieldAlert, Sparkles, User, Building2, Stethoscope, CreditCard, Award, UserCheck, Activity } from 'lucide-react';
 import RiskBadge from '../shared/RiskBadge';
 import { fetchRiskScore } from '../../services/api';
+
+const NODE_ICONS = {
+  Agent:         <User        size={16} style={{ color: '#38bdf8' }} />,
+  Clinic:        <Building2   size={16} style={{ color: '#34d399' }} />,
+  Doctor:        <Stethoscope size={16} style={{ color: '#a855f7' }} />,
+  Patient:       <UserCheck   size={16} style={{ color: '#94a3b8' }} />,
+  BankAccount:   <CreditCard  size={16} style={{ color: '#f43f5e' }} />,
+  LicenseRecord: <Award       size={16} style={{ color: '#f59e0b' }} />,
+};
+
+const NODE_COLOR = {
+  Agent:   '#38bdf8',
+  Clinic:  '#34d399',
+  Doctor:  '#a855f7',
+  Patient: '#94a3b8',
+};
 
 export default function NodeDetailPanel({ node, onClose }) {
   const [riskData, setRiskData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const nodeId = node?.id;
+  const nodeId   = node?.id;
   const nodeType = node?.type || node?.label || 'Node';
+  const accentColor = NODE_COLOR[nodeType] || '#06b6d4';
 
   useEffect(() => {
     if (!nodeId) return;
-
-    let isMounted = true;
+    let alive = true;
     setLoading(true);
     setError(null);
-
+    setRiskData(null);
     fetchRiskScore(nodeId)
-      .then(data => {
-        if (isMounted) {
-          setRiskData(data);
-        }
-      })
-      .catch(err => {
-        if (isMounted) {
-          console.error('Error fetching risk score for node:', err);
-          setError('Failed to fetch risk score');
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setLoading(false);
-        }
-      });
-
-    return () => { isMounted = false; };
+      .then(d  => alive && setRiskData(d))
+      .catch(() => alive && setError('Failed to load risk score'))
+      .finally(() => alive && setLoading(false));
+    return () => { alive = false; };
   }, [nodeId]);
 
   if (!node) return null;
 
-  const getNodeIcon = (type) => {
-    switch (type) {
-      case 'Agent': return <User className="w-5 h-5 text-sky-400" />;
-      case 'Clinic': return <Building className="w-5 h-5 text-emerald-400" />;
-      case 'Doctor': return <Stethoscope className="w-5 h-5 text-purple-400" />;
-      case 'Patient': return <UserCheck className="w-5 h-5 text-slate-400" />;
-      case 'BankAccount': return <CreditCard className="w-5 h-5 text-rose-400" />;
-      case 'LicenseRecord': return <Award className="w-5 h-5 text-amber-400" />;
-      default: return <Activity className="w-5 h-5 text-cyan-400" />;
-    }
-  };
-
   const score = riskData?.riskScore ?? 0;
-  const triggeredPatterns = riskData?.triggeredPatterns || [];
+  const patterns = riskData?.triggeredPatterns || [];
+  const riskLabel = score > 60 ? 'HIGH RISK' : score >= 30 ? 'CAUTION' : 'VERIFIED SAFE';
+  const riskColor = score > 60 ? '#f87171' : score >= 30 ? '#fbbf24' : '#34d399';
 
   return (
-    <aside className="w-96 border-l border-slate-800 bg-slate-950/95 backdrop-blur-xl h-full flex flex-col z-30 shadow-2xl overflow-y-auto">
-      {/* Header */}
-      <div className="p-5 border-b border-slate-800/80 flex items-start justify-between bg-slate-900/80 sticky top-0 backdrop-blur-md z-10">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700">
-            {getNodeIcon(nodeType)}
+    <aside
+      style={{
+        width: 380,
+        flexShrink: 0,
+        borderLeft: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(5,5,5,0.97)',
+        backdropFilter: 'blur(28px)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        zIndex: 30,
+      }}
+    >
+      {/* ── Header ── */}
+      <div
+        style={{
+          padding: '18px 20px',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          background: 'rgba(255,255,255,0.02)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          backdropFilter: 'blur(24px)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+            {/* Node type icon bubble */}
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: `${accentColor}15`,
+                border: `1px solid ${accentColor}35`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: `0 0 16px ${accentColor}20`,
+              }}
+            >
+              {NODE_ICONS[nodeType] || <Activity size={16} style={{ color: accentColor }} />}
+            </div>
+
+            <div style={{ minWidth: 0 }}>
+              <span
+                className="font-mono font-bold uppercase"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: '0.8px',
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  background: `${accentColor}12`,
+                  border: `1px solid ${accentColor}30`,
+                  color: accentColor,
+                  display: 'inline-block',
+                }}
+              >
+                {nodeType}
+              </span>
+              <h2
+                className="font-heading font-bold text-white"
+                style={{ fontSize: 15, marginTop: 5, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                {node.name || node.id}
+              </h2>
+              <p className="font-mono" style={{ fontSize: 10, color: '#525252', marginTop: 2 }}>{node.id}</p>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-              {nodeType}
-            </span>
-            <h2 className="text-base font-bold text-slate-100 mt-1 leading-snug">
-              {node.name || node.id}
-            </h2>
-            <p className="text-xs font-mono text-slate-500">{node.id}</p>
-          </div>
+
+          <button
+            onClick={onClose}
+            style={{
+              padding: 6,
+              borderRadius: 8,
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#525252',
+              cursor: 'pointer',
+              flexShrink: 0,
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e5e5e5'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#525252'; }}
+          >
+            <X size={15} />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 transition-all"
-        >
-          <X className="w-5 h-5" />
-        </button>
       </div>
 
-      <div className="p-5 space-y-6 flex-1">
+      {/* ── Body ── */}
+      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
+
         {/* Risk Score Card */}
-        <div className="p-4 rounded-xl glass-card border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider font-mono">
-              Risk Score Intelligence
+        <div
+          style={{
+            borderRadius: 14,
+            background: 'rgba(255,255,255,0.025)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            padding: '18px 20px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <span className="font-mono font-bold uppercase" style={{ fontSize: 10, letterSpacing: '0.7px', color: '#525252' }}>
+              Risk Score
             </span>
             {!loading && <RiskBadge riskScore={score} />}
           </div>
 
           {loading ? (
-            <div className="text-center py-4 text-xs font-mono text-cyan-400 animate-pulse">
-              Running Fraud Detection Engine...
+            <div className="font-mono" style={{ fontSize: 12, color: '#06b6d4', padding: '8px 0', animation: 'pulse 1.5s ease-in-out infinite', opacity: 0.8 }}>
+              Running fraud detection engine…
             </div>
           ) : error ? (
-            <div className="text-xs text-rose-400 py-2">{error}</div>
+            <div style={{ fontSize: 12, color: '#f87171' }}>{error}</div>
           ) : (
-            <div>
-              <div className="flex items-end justify-between my-2">
-                <div>
-                  <span className={`text-4xl font-extrabold font-mono ${
-                    score > 60 ? 'text-rose-400' : score >= 30 ? 'text-amber-400' : 'text-emerald-400'
-                  }`}>
+            <>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span className="font-mono font-extrabold" style={{ fontSize: 38, color: riskColor, lineHeight: 1 }}>
                     {score}
                   </span>
-                  <span className="text-xs text-slate-500 font-mono"> / 100</span>
+                  <span className="font-mono" style={{ fontSize: 11, color: '#404040' }}>/100</span>
                 </div>
-                <span className={`text-xs font-bold font-mono uppercase ${
-                  score > 60 ? 'text-rose-400' : score >= 30 ? 'text-amber-400' : 'text-emerald-400'
-                }`}>
-                  {score > 60 ? 'HIGH RISK' : score >= 30 ? 'CAUTION' : 'VERIFIED SAFE'}
+                <span className="font-mono font-bold uppercase" style={{ fontSize: 10, color: riskColor, letterSpacing: '0.8px' }}>
+                  {riskLabel}
                 </span>
               </div>
-
-              {/* Progress Bar */}
-              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+              {/* Progress track */}
+              <div style={{ height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
                 <div
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    score > 60 ? 'bg-rose-500 shadow-lg shadow-rose-500/50' :
-                    score >= 30 ? 'bg-amber-500' : 'bg-emerald-500'
-                  }`}
-                  style={{ width: `${score}%` }}
+                  style={{
+                    height: '100%',
+                    width: `${score}%`,
+                    borderRadius: 99,
+                    background: riskColor,
+                    boxShadow: score > 30 ? `0 0 8px ${riskColor}` : 'none',
+                    transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
                 />
               </div>
-            </div>
+            </>
           )}
         </div>
 
         {/* Triggered Fraud Patterns */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-rose-400" />
-            <h3 className="text-xs font-mono uppercase tracking-wider text-slate-300">
-              Triggered Fraud Patterns ({triggeredPatterns.length})
-            </h3>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+            <ShieldAlert size={13} style={{ color: '#f43f5e' }} />
+            <span className="font-mono font-bold uppercase" style={{ fontSize: 10, letterSpacing: '0.7px', color: '#737373' }}>
+              Triggered Patterns ({patterns.length})
+            </span>
           </div>
-          {triggeredPatterns.length === 0 ? (
-            <div className="p-3 rounded-lg border border-slate-800 bg-slate-900/40 text-xs text-emerald-400 font-mono">
-              ✓ No fraud patterns triggered. Clean graph profile.
+          {patterns.length === 0 ? (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: 10,
+                background: 'rgba(16,185,129,0.06)',
+                border: '1px solid rgba(16,185,129,0.2)',
+                fontSize: 12,
+                color: '#34d399',
+                fontFamily: 'JetBrains Mono, monospace',
+              }}
+            >
+              ✓ No fraud patterns detected. Clean profile.
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {triggeredPatterns.map((pattern, idx) => (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {patterns.map((p, i) => (
                 <span
-                  key={idx}
-                  className="px-2.5 py-1 rounded-md bg-rose-950/60 text-rose-300 border border-rose-800 text-xs font-mono font-semibold"
+                  key={i}
+                  className="font-mono font-bold"
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 7,
+                    background: 'rgba(244,63,94,0.1)',
+                    border: '1px solid rgba(244,63,94,0.3)',
+                    color: '#fca5a5',
+                    fontSize: 11,
+                  }}
                 >
-                  {pattern.replace(/_/g, ' ')}
+                  {p.replace(/_/g, ' ')}
                 </span>
               ))}
             </div>
           )}
         </div>
 
-        {/* Plain-English Explanation */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-violet-400" />
-            <h3 className="text-xs font-mono uppercase tracking-wider text-violet-300">
+        {/* AI Explanation */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+            <Sparkles size={13} style={{ color: '#a78bfa' }} />
+            <span className="font-mono font-bold uppercase" style={{ fontSize: 10, letterSpacing: '0.7px', color: '#737373' }}>
               AI Fraud Explanation
-            </h3>
+            </span>
           </div>
-          <div className="p-4 rounded-xl border border-violet-500/30 bg-violet-950/20 text-xs text-slate-200 leading-relaxed font-sans">
+          <div
+            style={{
+              padding: '14px 16px',
+              borderRadius: 12,
+              background: 'rgba(139,92,246,0.06)',
+              border: '1px solid rgba(139,92,246,0.2)',
+              fontSize: 12.5,
+              color: '#d4d4d4',
+              lineHeight: 1.65,
+            }}
+          >
             {loading ? (
-              <span className="text-violet-400 font-mono animate-pulse">Generating AI Explanation...</span>
+              <span className="font-mono" style={{ color: '#a78bfa', fontSize: 11, animation: 'pulse 1.5s ease-in-out infinite' }}>
+                Generating AI explanation…
+              </span>
             ) : (
               riskData?.explanation || 'No anomalies detected for this entity.'
             )}
           </div>
         </div>
 
-        {/* Node Properties */}
-        <div className="space-y-2 pt-2">
-          <h3 className="text-xs font-mono uppercase tracking-wider text-slate-400">
+        {/* Registry Metadata */}
+        <div>
+          <span className="font-mono font-bold uppercase" style={{ fontSize: 10, letterSpacing: '0.7px', color: '#525252', display: 'block', marginBottom: 10 }}>
             Registry Metadata
-          </h3>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/40 divide-y divide-slate-800/60 overflow-hidden text-xs">
-            {Object.entries(node.properties || {}).map(([key, val]) => (
-              <div key={key} className="p-3 flex items-center justify-between">
-                <span className="font-mono text-slate-400 uppercase text-[11px]">{key}</span>
-                <span className="font-medium text-slate-200 text-right truncate max-w-[180px]">
+          </span>
+          <div
+            style={{
+              borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.07)',
+              overflow: 'hidden',
+            }}
+          >
+            {Object.entries(node.properties || {}).map(([key, val], i, arr) => (
+              <div
+                key={key}
+                style={{
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                  background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
+                }}
+              >
+                <span className="font-mono font-semibold" style={{ fontSize: 10, color: '#525252', textTransform: 'uppercase', letterSpacing: '0.5px', flexShrink: 0 }}>
+                  {key}
+                </span>
+                <span style={{ fontSize: 12, color: '#d4d4d4', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
                   {String(val)}
                 </span>
               </div>

@@ -1,14 +1,52 @@
 import React from 'react';
-import { Activity } from 'lucide-react';
 
-export default function Loader({ text = 'Analyzing Fraud Graph...' }) {
+export default function Loader({ text = 'Analyzing Fraud Graph…' }) {
   return (
-    <div className="flex flex-col items-center justify-center p-8 gap-3">
-      <div className="relative flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
-        <Activity className="w-5 h-5 text-cyan-400 absolute animate-pulse" />
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 20,
+        padding: '48px 24px',
+      }}
+    >
+      {/* Spinner ring */}
+      <div style={{ position: 'relative', width: 48, height: 48 }}>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            border: '2px solid rgba(6,182,212,0.12)',
+            borderTopColor: '#06b6d4',
+            animation: 'spin 0.9s linear infinite',
+          }}
+        />
+        {/* Inner pulse dot */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            background: '#06b6d4',
+            opacity: 0.7,
+            animation: 'pulse 1.4s ease-in-out infinite',
+          }}
+        />
       </div>
-      <p className="text-sm font-mono text-cyan-300/80 tracking-wide">{text}</p>
+
+      <p
+        className="font-mono"
+        style={{ fontSize: 12, color: 'rgba(6,182,212,0.75)', letterSpacing: '0.3px', textAlign: 'center', maxWidth: 360 }}
+      >
+        {text}
+      </p>
     </div>
   );
 }
